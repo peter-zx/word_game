@@ -1,257 +1,102 @@
 <!DOCTYPE html>
-    <html lang="en">
+<html>
+<head>
+    <title>Word Game</title>
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            gap: 10px;
+        }
+        .cell {
+            border: 1px solid black;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #f0f0f0;
+        }
+        .cell.selected {
+            background-color: yellow;
+        }
+        .cell.matched {
+            background-color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid" id="game-grid"></div>
+    <button onclick="loadGame()">Restart Game</button>
+    <script>
+        let selectedWords = [];
+        let matchedPairs = new Set();
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Word Game</title>
-        <style>
-            body {
-                font-family: sans-serif;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 100vh;
-                margin: 0;
-            }
+        async function loadGame() {
+            try {
+                const response = await fetch('/game');
+                if (!response.ok) throw new Error('Failed to load game');
+                const data = await response.json();
+                const grid = data.grid;
+                const word_ids = data.word_ids;
 
-            .game-container {
-                display: none;
-                flex-direction: column;
-                align-items: center;
-            }
+                const gameGrid = document.getElementById('game-grid');
+                gameGrid.innerHTML = ''; // 清空网格
+                selectedWords = [];
+                matchedPairs.clear();
 
-            .grid {
-                display: grid;
-                gap: 5px;
-                margin-bottom: 20px;
-            }
-
-            .card {
-                width: 80px;
-                height: 80px;
-                border: 1px solid #ccc;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-            }
-
-            .level-select {
-                display: flex;
-                gap: 10px;
-            }
-
-            .level-select button {
-                padding: 10px 20px;
-                cursor: pointer;
-            }
-
-            #time-display {
-                margin-bottom: 10px;
-            }
-
-            #score-display {
-                margin-bottom: 10px;
-            }
-
-            #upload-form {
-                margin-top: 20px;
-            }
-
-            #upload-form input[type="file"] {
-                margin-bottom: 10px;
-            }
-        </style>
-    </head>
-
-    <body>
-        <h1>Word Game</h1>
-
-        <div class="level-select">
-            <button onclick="showLevels('65')">65秒</button>
-            <button onclick="showLevels('120')">120秒</button>
-            <button onclick="showLevels('endless')">无尽模式</button>
-        </div>
-
-        <div id="time-mode-select" style="display: none;">
-            <button onclick="startGame('lv1')">Lv1</button>
-            <button onclick="startGame('lv2')">Lv2</button>
-            <button onclick="startGame('lv3')">Lv3</button>
-            <button onclick="startGame('lv4')">Lv4</button>
-            <button onclick="startGame('lv5')">Lv5</button>
-            <button onclick="startGame('lv6')">Lv6</button>
-        </div>
-
-        <div class="game-container" id="game-container">
-            <div id="time-display"></div>
-            <div id="score-display"></div>
-            <div class="grid" id="grid"></div>
-            <button onclick="nextGroup()" id="next-group-button" style="display: none;">下一组</button>
-        </div>
-
-        <form id="upload-form" enctype="multipart/form-data">
-            <input type="file" name="file" id="file-upload">
-            <button type="button" onclick="uploadWords()">上传单词本</button>
-        </form>
-
-        <script>
-            let wordIds = {};
-            let selectedCards = [];
-            let score = 0;
-            let timeLeft = 0;
-            let timer;
-            let currentLevel = '';
-            let currentGroupIndex = 0;
-            let gameData = null;
-
-            function showLevels(timeMode) {
-                if (timeMode !== 'endless') {
-                    timeLeft = parseInt(timeMode);
-                } else {
-                    timeLeft = 0;
-                }
-                document.getElementById('time-mode-select').style.display = 'flex';
-                document.querySelector('.level-select').style.display = 'none';
-            }
-
-            async function startGame(level) {
-                currentLevel = level;
-                currentGroupIndex = 0;
-                score = 0;
-                document.getElementById('score-display').textContent = `得分: ${score}`;
-                document.getElementById('time-mode-select').style.display = 'none';
-                document.getElementById('game-container').style.display = 'flex';
-                await loadGameData();
-                loadGroup();
-                if (timeLeft > 0) {
-                    startTimer();
-                } else {
-                    document.getElementById('time-display').textContent = '无尽模式';
-                }
-            }
-
-            async function loadGameData() {
-                const response = await fetch(`/game/${currentLevel}`);
-                gameData = await response.json();
-            }
-
-            function loadGroup() {
-                const group = gameData.groups[currentGroupIndex];
-                const grid = document.getElementById('grid');
-                grid.innerHTML = '';
-                grid.style.gridTemplateColumns = `repeat(${Math.sqrt(group.grid.length)}, 1fr)`;
-                group.grid.forEach(item => {
-                    const card = document.createElement('div');
-                    card.classList.add('card');
-                    card.textContent = item.value;
-                    card.dataset.id = item.id;
-                    card.onclick = () => selectCard(item.id);
-                    grid.appendChild(card);
+                grid.forEach(cell => {
+                    const cellElement = document.createElement('div');
+                    cellElement.classList.add('cell');
+                    cellElement.textContent = cell.value;
+                    cellElement.dataset.id = cell.id;
+                    cellElement.addEventListener('click', () => handleCellClick(cell.id, word_ids, cellElement));
+                    gameGrid.appendChild(cellElement);
                 });
-                wordIds = group.word_ids;
-                if (currentLevel !== 'endless' && currentGroupIndex < gameData.groups.length - 1) {
-                    document.getElementById('next-group-button').style.display = 'block';
-                } else {
-                    document.getElementById('next-group-button').style.display = 'none';
-                }
-            }
 
-            function selectCard(id) {
-                if (selectedCards.length < 2 && !selectedCards.includes(id)) {
-                    selectedCards.push(id);
-                    if (selectedCards.length === 2) {
-                        checkMatch();
-                    }
-                }
+                window.wordIds = word_ids;
+            } catch (error) {
+                console.error('Error loading game:', error);
+                alert('Failed to load game. Please check the server.');
             }
+        }
 
-            async function checkMatch() {
+        async function handleCellClick(cellId, word_ids, cellElement) {
+            if (matchedPairs.has(cellId) || selectedWords.includes(cellId)) return;
+
+            selectedWords.push(cellId);
+            cellElement.classList.add('selected');
+
+            if (selectedWords.length === 2) {
                 const response = await fetch('/check', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        word1_id: selectedCards[0],
-                        word2_id: selectedCards[1],
-                        word_ids: wordIds
+                        word1_id: selectedWords[0],
+                        word2_id: selectedWords[1],
+                        word_ids: word_ids
                     })
                 });
                 const data = await response.json();
+
+                const cells = document.querySelectorAll('.cell.selected');
                 if (data.result) {
-                    score += 10;
-                    document.getElementById('score-display').textContent = `得分: ${score}`;
-                    selectedCards.forEach(id => {
-                        document.querySelector(`.card[data-id="${id}"]`).style.visibility = 'hidden';
+                    alert('Match!');
+                    cells.forEach(cell => {
+                        cell.classList.remove('selected');
+                        cell.classList.add('matched');
+                        matchedPairs.add(parseInt(cell.dataset.id));
                     });
-                }
-                selectedCards = [];
-            }
-
-            function startTimer() {
-                document.getElementById('time-display').textContent = `剩余时间: ${timeLeft}秒`;
-                timer = setInterval(() => {
-                    timeLeft--;
-                    document.getElementById('time-display').textContent = `剩余时间: ${timeLeft}秒`;
-                    if (timeLeft <= 0) {
-                        clearInterval(timer);
-                        endGame();
-                    }
-                }, 1000);
-            }
-
-            function endGame() {
-                alert(`游戏结束，您的得分是: ${score}`);
-                document.getElementById('game-container').style.display = 'none';
-                document.querySelector('.level-select').style.display = 'flex';
-                saveScore(score);
-            }
-
-            async function nextGroup() {
-                currentGroupIndex++;
-                if (currentGroupIndex < gameData.groups.length) {
-                    loadGroup();
                 } else {
-                    endGame();
+                    alert('No match!');
+                    cells.forEach(cell => cell.classList.remove('selected'));
                 }
+                selectedWords = [];
             }
+        }
 
-            async function uploadWords() {
-                const fileInput = document.getElementById('file-upload');
-                const file = fileInput.files[0];
-                if (!file) {
-                    alert('请选择一个文件');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const response = await fetch('/upload_words', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                alert(data.message || data.error || '上传成功');
-            }
-
-            async function saveScore(score) {
-                await fetch('/save_score', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        score: score,
-                        level: currentLevel,
-                        time: new Date().toISOString()
-                    })
-                });
-            }
-        </script>
-    </body>
-
-    </html>
+        // 页面加载时启动游戏
+        loadGame();
+    </script>
+</body>
+</html>
