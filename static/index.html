@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>知识消消乐</title>
+    <title>自定义知识消消乐</title>
     <style>
         .container { text-align: center; margin: 20px; font-family: Arial, sans-serif; }
         .mode-grid, .level-grid { display: grid; grid-template-columns: repeat(2, 120px); gap: 15px; justify-content: center; }
@@ -21,11 +21,12 @@
         .modal-header { position: relative; }
         .modal-close { position: absolute; right: 10px; top: 10px; background: #ff4040; padding: 5px 10px; }
         .modal-buttons { display: flex; justify-content: space-around; margin-top: 20px; }
+        #wrong-words { margin-top: 10px; }
     </style>
 </head>
 <body>
     <div id="main-menu" class="container">
-        <h1>知识消消乐</h1>
+        <h1>自定义知识消消乐</h1>
         <h3>选择模式</h3>
         <div class="mode-grid">
             <div class="card" onclick="showLevels('65')">65秒</div>
@@ -78,6 +79,7 @@ apple,苹果,L1"></textarea><br>
             <button class="modal-close" onclick="closeModal()">X</button>
         </div>
         <p id="final-score"></p>
+        <div id="wrong-words"></div>
         <div class="modal-buttons">
             <button onclick="showMainMenu()">回到主页</button>
             <button onclick="nextLevel()">下一关</button>
@@ -88,6 +90,7 @@ apple,苹果,L1"></textarea><br>
         let selectedWords = [];
         let matchedPairs = new Set();
         let wrongPairs = new Set();
+        let wrongWords = []; // 记录错选的单词
         let currentLevel = 'lv1';
         let currentTimeMode = '65';
         let groups = [];
@@ -126,6 +129,7 @@ apple,苹果,L1"></textarea><br>
             currentLevel = level;
             score = 0;
             currentGroup = 0;
+            wrongWords = []; // 重置错词记录
             try {
                 const response = await fetch(`/game/${level}`);
                 if (!response.ok) throw new Error('Failed to load game');
@@ -207,6 +211,8 @@ apple,苹果,L1"></textarea><br>
                         cell.classList.remove('selected');
                         cell.classList.add('wrong');
                         wrongPairs.add(parseInt(cell.dataset.id));
+                        const word = word_ids[cell.dataset.id];
+                        wrongWords.push(`${word.value} (${word.pair})`);
                     });
                 }
                 selectedWords = [];
@@ -259,6 +265,8 @@ apple,苹果,L1"></textarea><br>
                 body: JSON.stringify({ time_mode: currentTimeMode, level: currentLevel, score: score })
             });
             document.getElementById('final-score').textContent = `你的分数: ${score}`;
+            const wrongWordsDiv = document.getElementById('wrong-words');
+            wrongWordsDiv.innerHTML = wrongWords.length ? '<h3>错选单词:</h3>' + wrongWords.map(w => `<p>${w}</p>`).join('') : '<p>完美！没有错选单词。</p>';
             document.getElementById('end-modal').style.display = 'block';
         }
 

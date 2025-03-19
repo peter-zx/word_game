@@ -12,7 +12,6 @@ app.register_blueprint(words_api)
 app.register_blueprint(game_api)
 app.register_blueprint(scores_api)
 
-# 获取项目根目录
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
@@ -55,6 +54,15 @@ def update_game_words():
             except Exception as e:
                 print(f"Error reading {wf}: {e}")
     else:
+        if not os.path.exists(default_file):
+            default_data = [
+                {'english': 'apple', 'chinese': '苹果', 'difficulty': 'L1'},
+                {'english': 'banana', 'chinese': '香蕉', 'difficulty': 'L1'},
+                {'english': 'cat', 'chinese': '猫', 'difficulty': 'L2'},
+                {'english': 'dog', 'chinese': '狗', 'difficulty': 'L2'},
+                {'english': 'elephant', 'chinese': '大象', 'difficulty': 'L3'}
+            ]
+            pd.DataFrame(default_data).to_csv(default_file, index=False, encoding='utf-8')
         try:
             df = pd.read_csv(default_file)
             all_words = df.to_dict(orient='records')
