@@ -28,10 +28,21 @@ def get_game(level):
     level_map = {'lv1': 4, 'lv2': 5, 'lv3': 6, 'lv4': 7, 'lv5': 8, 'lv6': 9}
     rows = level_map.get(level.lower(), 4)
     groups = []
-    for _ in range(6):  # 6 组题目
+    group_count = 6 if level != 'endless' else 1  # 无尽模式初始1组，后续动态添加
+    for _ in range(group_count):
         grid, word_ids = generate_game(words, rows)
         groups.append({'grid': grid, 'word_ids': word_ids})
-    return jsonify({'groups': groups})
+    return jsonify({'groups': groups, 'rows': rows})
+
+@game_api.route('/next_group/<level>', methods=['GET'])
+def next_group(level):
+    words = load_words_from_csv('data/words.csv')
+    if not words:
+        return jsonify({'error': 'No words found'}), 404
+    level_map = {'lv1': 4, 'lv2': 5, 'lv3': 6, 'lv4': 7, 'lv5': 8, 'lv6': 9}
+    rows = level_map.get(level.lower(), 4)
+    grid, word_ids = generate_game(words, rows)
+    return jsonify({'grid': grid, 'word_ids': word_ids})
 
 @game_api.route('/check', methods=['POST'])
 def check_pair():
