@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>自定义知识消消乐</title>
+    <title>知识消消乐</title>
     <style>
         .container { text-align: center; margin: 20px; font-family: Arial, sans-serif; }
         .mode-grid, .level-grid { display: grid; grid-template-columns: repeat(2, 120px); gap: 15px; justify-content: center; }
@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="main-menu" class="container">
-        <h1>自定义知识消消乐</h1>
+        <h1>知识消消乐</h1>
         <h3>选择模式</h3>
         <div class="mode-grid">
             <div class="card" onclick="showLevels('65')">65秒</div>
@@ -56,7 +56,7 @@
     <div id="game" class="container" style="display: none;">
         <div id="timer">时间: --</div>
         <div id="score">分数: 0</div>
-        <div id="group-info">第 1 组</div>
+        <div id="group-info">第 1/6 组</div>
         <div id="game-grid" class="game-grid"></div>
         <button onclick="endGame()">结束游戏</button>
         <button onclick="showLevels(currentTimeMode)">返回</button>
@@ -94,7 +94,7 @@ apple,苹果,L1"></textarea><br>
         let currentGroup = 0;
         let score = 0;
         let timerId = null;
-        let timeElapsed = 0;
+        let timeLeft = 0;
         let rows = 4;
 
         function showMainMenu() {
@@ -126,7 +126,6 @@ apple,苹果,L1"></textarea><br>
             currentLevel = level;
             score = 0;
             currentGroup = 0;
-            timeElapsed = 0;
             try {
                 const response = await fetch(`/game/${level}`);
                 if (!response.ok) throw new Error('Failed to load game');
@@ -162,7 +161,7 @@ apple,苹果,L1"></textarea><br>
             selectedWords = [];
             matchedPairs.clear();
             wrongPairs.clear();
-            document.getElementById('group-info').textContent = `第 ${currentGroup + 1} 组`;
+            document.getElementById('group-info').textContent = `第 ${currentGroup + 1}${currentTimeMode === 'endless' ? '' : '/6'} 组`;
             document.getElementById('score').textContent = `分数: ${score}`;
 
             grid.forEach(cell => {
@@ -211,7 +210,6 @@ apple,苹果,L1"></textarea><br>
                     });
                 }
                 selectedWords = [];
-                // 检查是否需要跳转下一页
                 if (matchedPairs.size + wrongPairs.size === rows * 2) {
                     currentGroup += 1;
                     setTimeout(loadGroup, 500);
@@ -228,15 +226,22 @@ apple,苹果,L1"></textarea><br>
 
         function startTimer() {
             stopTimer();
-            timeElapsed = 0;
-            document.getElementById('timer').textContent = `时间: ${timeElapsed}秒`;
-            timerId = setInterval(() => {
-                timeElapsed += 1;
-                document.getElementById('timer').textContent = `时间: ${timeElapsed}秒`;
-                if (currentTimeMode !== 'endless' && timeElapsed >= parseInt(currentTimeMode)) {
-                    endGame();
-                }
-            }, 1000);
+            if (currentTimeMode === 'endless') {
+                timeLeft = 0;
+                document.getElementById('timer').textContent = `时间: ${timeLeft}秒`;
+                timerId = setInterval(() => {
+                    timeLeft += 1;
+                    document.getElementById('timer').textContent = `时间: ${timeLeft}秒`;
+                }, 1000);
+            } else {
+                timeLeft = parseInt(currentTimeMode);
+                document.getElementById('timer').textContent = `剩余时间: ${timeLeft}秒`;
+                timerId = setInterval(() => {
+                    timeLeft -= 1;
+                    document.getElementById('timer').textContent = `剩余时间: ${timeLeft}秒`;
+                    if (timeLeft <= 0) endGame();
+                }, 1000);
+            }
         }
 
         function stopTimer() {

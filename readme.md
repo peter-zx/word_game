@@ -1,22 +1,21 @@
 ```
-word-game-backend/
-├── app.py
-├── api/
-│   ├── __init__.py
-│   ├── words.py
-│   ├── game.py
-│   └── scores.py
-├── utils/
-│   ├── __init__.py
-│   └── words_util.py
-├── data/
-│   ├── default_words.csv  # 默认单词库
-│   ├── words1.csv         # 用户添加的单词库1
-│   ├── words2.csv         # 用户添加的单词库2（可扩展）
-│   ├── game_words.csv     # 中转缓存文件
-│   └── scores.json        # 分数记录
-├── static/
-│   └── index.html
+E:\AIGC_design\word-game-backend\
+│   ├── app.py                  # 主程序文件，负责启动 Flask 应用、路由注册和单词库管理\
+│   ├── api\                    # API 模块目录，存放后端接口逻辑\
+│   │   ├── __init__.py         # 空文件，标记 api 目录为 Python 包\
+│   │   ├── words.py            # 单词管理 API，处理单词的获取和添加\
+│   │   ├── game.py             # 游戏核心 API，生成游戏关卡和检查匹配\
+│   │   └── scores.py           # 分数管理 API，保存和获取分数排行榜\
+│   ├── utils\                  # 工具模块目录，存放辅助函数\
+│   │   ├── __init__.py         # 空文件，标记 utils 目录为 Python 包\
+│   │   └── words_util.py       # 单词工具函数，负责从 CSV 文件加载单词\
+│   ├── data\                   # 数据目录，存放单词库和分数记录\
+│   │   ├── default_words.csv   # 默认单词库文件，程序启动时若无用户文件则使用此文件\
+│   │   ├── game_words.csv      # 中转缓存文件，游戏实际使用的单词数据\
+│   │   ├── words1.csv          # 用户添加的第一个单词库文件（示例，可有多个 wordsN.csv）\
+│   │   └── scores.json         # 分数记录文件，存储最近 5 次游戏分数\
+│   ├── static\                 # 静态文件目录，存放前端资源\
+│   │   └── index.html          # 前端界面文件，包含游戏页面和交互逻辑\
 ```
 
 
