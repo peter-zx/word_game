@@ -1,26 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>自定义知识消消乐</title>
+    <title>知识消消乐</title>
     <style>
         .container { text-align: center; margin: 20px; font-family: Arial, sans-serif; }
         .mode-grid, .level-grid { display: grid; grid-template-columns: repeat(2, 120px); gap: 15px; justify-content: center; }
         .game-grid { display: grid; grid-template-columns: repeat(2, 100px); gap: 10px; margin: 20px auto; width: fit-content; }
         .card, .cell { border: 1px solid #333; padding: 15px; text-align: center; cursor: pointer; background-color: #e0e0e0; border-radius: 5px; }
-        .card:hover, .cell:hover { background-color: #d0d0d0; }
+        .card:hover, .cell:not(.matched):not(.wrong):hover { background-color: #d0d0d0; }
         .cell { background-color: #f0f0f0; }
         .cell.selected { background-color: #ffd700; }
-        .cell.matched { background-color: #a9a9a9; }
+        .cell.matched { background-color: #a9a9a9; cursor: default; }
+        .cell.wrong { background-color: #ff4040; cursor: default; }
         button { padding: 10px 20px; margin: 5px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
         button:hover { background-color: #45a049; }
         textarea { margin: 10px; padding: 10px; width: 300px; }
         #timer, #score { font-size: 20px; margin: 10px; }
         #scoreboard { margin-top: 20px; }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid #333; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
     <div id="main-menu" class="container">
-        <h1>自定义知识消消乐</h1>
+        <h1>知识消消乐</h1>
         <h3>选择模式</h3>
         <div class="mode-grid">
             <div class="card" onclick="showLevels('65')">65秒</div>
@@ -30,7 +32,7 @@
         </div>
         <button onclick="showUpload()">添加单词库</button>
         <div id="scoreboard">
-            <h3>最近5次分数</h3>
+            <h3>排行榜</h3>
             <ul id="score-list"></ul>
         </div>
     </div>
@@ -49,11 +51,11 @@
     </div>
 
     <div id="game" class="container" style="display: none;">
-        <div id="timer">剩余时间: --</div>
+        <div id="timer">时间: --</div>
         <div id="score">分数: 0</div>
-        <div id="group-info">第 1/6 组</div>
+        <div id="group-info">第 1 组</div>
         <div id="game-grid" class="game-grid"></div>
-        <button onclick="nextGroup()">下一组</button>
+        <button onclick="endGame()">结束游戏</button>
         <button onclick="showLevels(currentTimeMode)">返回</button>
         <button onclick="showMainMenu()">回到主页</button>
     </div>
@@ -67,16 +69,26 @@ apple,苹果,L1"></textarea><br>
         <button onclick="showMainMenu()">返回</button>
     </div>
 
+    <div id="end-modal" class="modal">
+        <h2>游戏结束</h2>
+        <p id="final-score"></p>
+        <button onclick="closeModal()">关闭</button>
+        <button onclick="showMainMenu()">回到主页</button>
+        <button onclick="nextLevel()">下一关</button>
+    </div>
+
     <script>
         let selectedWords = [];
         let matchedPairs = new Set();
+        let wrongPairs = new Set();
         let currentLevel = 'lv1';
         let currentTimeMode = '65';
         let groups = [];
         let currentGroup = 0;
         let score = 0;
         let timerId = null;
-        let timeLeft = 0;
+        let timeElapsed = 0;
+        let rows = 4;
 
         function showMainMenu() {
             stopTimer();
@@ -84,6 +96,7 @@ apple,苹果,L1"></textarea><br>
             document.getElementById('level-menu').style.display = 'none';
             document.getElementById('game').style.display = 'none';
             document.getElementById('upload').style.display = 'none';
+            document.getElementById('end-modal').style.display = 'none';
             loadScores();
         }
 
@@ -106,11 +119,13 @@ apple,苹果,L1"></textarea><br>
             currentLevel = level;
             score = 0;
             currentGroup = 0;
+            timeElapsed = 0;
             try {
                 const response = await fetch(`/game/${level}`);
                 if (!response.ok) throw new Error('Failed to load game');
                 const data = await response.json();
                 groups = data.groups;
+                rows = data.rows;
 
                 document.getElementById('main-menu').style.display = 'none';
                 document.getElementById('level-menu').style.display = 'none';
@@ -126,8 +141,12 @@ apple,苹果,L1"></textarea><br>
         }
 
         function loadGroup() {
-            if (currentGroup >= groups.length) {
+            if (currentTimeMode !== 'endless' && currentGroup >= 6) {
                 endGame();
+                return;
+            }
+            if (currentGroup >= groups.length && currentTimeMode === 'endless') {
+                fetchNextGroup();
                 return;
             }
             const { grid, word_ids } = groups[currentGroup];
@@ -135,7 +154,8 @@ apple,苹果,L1"></textarea><br>
             gameGrid.innerHTML = '';
             selectedWords = [];
             matchedPairs.clear();
-            document.getElementById('group-info').textContent = `第 ${currentGroup + 1}/6 组`;
+            wrongPairs.clear();
+            document.getElementById('group-info').textContent = `第 ${currentGroup + 1} 组`;
             document.getElementById('score').textContent = `分数: ${score}`;
 
             grid.forEach(cell => {
@@ -150,7 +170,7 @@ apple,苹果,L1"></textarea><br>
         }
 
         async function handleCellClick(cellId, word_ids, cellElement) {
-            if (matchedPairs.has(cellId) || selectedWords.includes(cellId)) return;
+            if (matchedPairs.has(cellId) || wrongPairs.has(cellId) || selectedWords.includes(cellId)) return;
 
             selectedWords.push(cellId);
             cellElement.classList.add('selected');
@@ -176,31 +196,39 @@ apple,苹果,L1"></textarea><br>
                         cell.classList.add('matched');
                         matchedPairs.add(parseInt(cell.dataset.id));
                     });
+                    if (matchedPairs.size === rows * 2) {
+                        currentGroup += 1;
+                        setTimeout(loadGroup, 500); // 自动下一页，延迟0.5秒
+                    }
                 } else {
-                    cells.forEach(cell => cell.classList.remove('selected'));
+                    cells.forEach(cell => {
+                        cell.classList.remove('selected');
+                        cell.classList.add('wrong');
+                        wrongPairs.add(parseInt(cell.dataset.id));
+                    });
                 }
                 selectedWords = [];
             }
         }
 
-        function nextGroup() {
-            currentGroup += 1;
+        async function fetchNextGroup() {
+            const response = await fetch(`/next_group/${currentLevel}`);
+            const data = await response.json();
+            groups.push({ grid: data.grid, word_ids: data.word_ids });
             loadGroup();
         }
 
         function startTimer() {
             stopTimer();
-            timeLeft = currentTimeMode === 'endless' ? Infinity : parseInt(currentTimeMode);
-            document.getElementById('timer').textContent = `剩余时间: ${timeLeft}秒`;
-            if (currentTimeMode !== 'endless') {
-                timerId = setInterval(() => {
-                    timeLeft -= 1;
-                    document.getElementById('timer').textContent = `剩余时间: ${timeLeft}秒`;
-                    if (timeLeft <= 0) {
-                        endGame();
-                    }
-                }, 1000);
-            }
+            timeElapsed = 0;
+            document.getElementById('timer').textContent = `时间: ${timeElapsed}秒`;
+            timerId = setInterval(() => {
+                timeElapsed += 1;
+                document.getElementById('timer').textContent = `时间: ${timeElapsed}秒`;
+                if (currentTimeMode !== 'endless' && timeElapsed >= parseInt(currentTimeMode)) {
+                    endGame();
+                }
+            }, 1000);
         }
 
         function stopTimer() {
@@ -217,8 +245,24 @@ apple,苹果,L1"></textarea><br>
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ time_mode: currentTimeMode, level: currentLevel, score: score })
             });
-            alert(`游戏结束！你的分数: ${score}`);
-            showMainMenu();
+            document.getElementById('final-score').textContent = `你的分数: ${score}`;
+            document.getElementById('end-modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('end-modal').style.display = 'none';
+        }
+
+        function nextLevel() {
+            const levels = ['lv1', 'lv2', 'lv3', 'lv4', 'lv5', 'lv6'];
+            const nextIdx = levels.indexOf(currentLevel) + 1;
+            if (nextIdx < levels.length) {
+                startGame(levels[nextIdx]);
+                document.getElementById('end-modal').style.display = 'none';
+            } else {
+                alert('已经是最后一关！');
+                showMainMenu();
+            }
         }
 
         async function loadScores() {
@@ -249,7 +293,7 @@ apple,苹果,L1"></textarea><br>
             if (response.ok) showMainMenu();
         }
 
-        showMainMenu(); // 初始加载
+        showMainMenu();
     </script>
 </body>
 </html>

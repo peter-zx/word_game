@@ -1,3 +1,34 @@
+word-game-backend/
+├── app.py                # 主程序，整合所有模块
+├── api/
+│   ├── __init__.py
+│   ├── words.py         # 单词相关API
+│   ├── game.py          # 游戏核心逻辑
+│   └── scores.py        # 新增：分数管理模块
+├── utils/
+│   ├── __init__.py
+│   └── words_util.py    # 工具函数
+├── data/
+│   ├── words.csv        # 单词库
+│   └── scores.json      # 分数记录
+├── static/
+│   └── index.html       # 前端界面
+
+功能说明
+排行榜：修复为主页显示最新 5 次分数，按时间排序。
+
+无尽模式：计时器从 0 开始递增，无关卡上限，手动结束。
+
+自动下一页：匹配完一组后 0.5 秒自动跳转。
+
+选错变红：选错后卡片变红且不可选。
+
+结束弹窗：显示分数，提供“关闭”、“回到主页”、“下一关”按钮。
+
+模块化：新增 scores.py，分离分数逻辑。
+
+
+
 功能说明
 一级界面：
 显示模式选择（65秒、125秒、180秒、无尽模式）。
@@ -25,18 +56,3 @@
 使用柔和颜色和圆角按钮，提升视觉效果。
 
 布局清晰，适合初学者理解。
-
-word-game-backend/
-├── app.py
-├── api/
-│   ├── __init__.py
-│   ├── words.py
-│   └── game.py
-├── utils/
-│   ├── __init__.py
-│   └── words_util.py
-├── data/
-│   ├── words.csv
-│   └── scores.json  # 新增：存储分数记录
-├── static/
-│   └── index.html
