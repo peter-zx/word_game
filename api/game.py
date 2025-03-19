@@ -4,33 +4,34 @@ import random
 
 game_api = Blueprint('game_api', __name__)
 
-@game_api.route('/game/<level>', methods=['GET'])
-def get_game(level):
-    words = load_words_from_csv('data/words.csv')
-    if not words:
-        return jsonify({'error': 'No words found'}), 404
-
-    # 根据难度级别设置行数
-    level_map = {'lv1': 4, 'lv2': 5, 'lv3': 6, 'lv4': 7, 'lv5': 8, 'lv6': 9}
-    rows = level_map.get(level.lower(), 4)  # 默认 Lv1
+def generate_game(words, rows):
     pair_count = min(rows, len(words))
-
-    # 随机选择单词对
     selected_words = random.sample(words, pair_count)
     game_items = []
     for word in selected_words:
         game_items.append({'type': 'english', 'value': word['english'], 'pair': word['chinese']})
         game_items.append({'type': 'chinese', 'value': word['chinese'], 'pair': word['english']})
-
-    # 打乱顺序并生成网格
     random.shuffle(game_items)
     game_grid = []
     word_ids = {}
     for i, item in enumerate(game_items):
         word_ids[i] = item
         game_grid.append({'id': i, 'value': item['value']})
+    return game_grid, word_ids
 
-    return jsonify({'grid': game_grid, 'word_ids': word_ids})
+@game_api.route('/game/<level>', methods=['GET'])
+def get_game(level):
+    words = load_words_from_csv('data/words.csv')
+    if not words:
+        return jsonify({'error': 'No words found'}), 404
+
+    level_map = {'lv1': 4, 'lv2': 5, 'lv3': 6, 'lv4': 7, 'lv5': 8, 'lv6': 9}
+    rows = level_map.get(level.lower(), 4)
+    groups = []
+    for _ in range(6):  # 6 组题目
+        grid, word_ids = generate_game(words, rows)
+        groups.append({'grid': grid, 'word_ids': word_ids})
+    return jsonify({'groups': groups})
 
 @game_api.route('/check', methods=['POST'])
 def check_pair():
