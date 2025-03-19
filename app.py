@@ -29,11 +29,14 @@ def upload_words():
     if 'file' in request.files:
         file = request.files['file']
         if file.filename.endswith('.csv'):
-            file.save(new_file)
+            # 读取文件内容并添加表头
+            content = file.read().decode('utf-8').strip()
+            with open(new_file, 'w', encoding='utf-8') as f:
+                f.write('english,chinese,difficulty\n' + content)
     elif 'text' in request.form:
-        text = request.form['text']
+        text = request.form['text'].strip()
         with open(new_file, 'w', encoding='utf-8') as f:
-            f.write(text)
+            f.write('english,chinese,difficulty\n' + text)
     else:
         return jsonify({'error': 'Invalid input'}), 400
 

@@ -7,11 +7,11 @@
         .mode-grid, .level-grid { display: grid; grid-template-columns: repeat(2, 120px); gap: 15px; justify-content: center; }
         .game-grid { display: grid; grid-template-columns: repeat(2, 100px); gap: 10px; margin: 20px auto; width: fit-content; }
         .card, .cell { border: 1px solid #333; padding: 15px; text-align: center; cursor: pointer; background-color: #e0e0e0; border-radius: 5px; }
-        .card:hover, .cell:not(.matched):not(.wrong):hover { background-color: #d0d0d0; }
+        .card:hover, .cell:not(.matched):hover { background-color: #d0d0d0; }
         .cell { background-color: #f0f0f0; }
         .cell.selected { background-color: #ffd700; }
         .cell.matched { background-color: #a9a9a9; cursor: default; }
-        .cell.wrong { background-color: #ff4040; cursor: default; }
+        .cell.wrong { background-color: #ff4040; }
         button { padding: 10px 20px; margin: 5px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
         button:hover { background-color: #45a049; }
         textarea { margin: 10px; padding: 10px; width: 300px; }
@@ -66,8 +66,9 @@
 
     <div id="upload" class="container" style="display: none;">
         <h2>添加单词库</h2>
-        <textarea id="word-text" rows="5" cols="30" placeholder="english,chinese,difficulty
-apple,苹果,L1"></textarea><br>
+        <textarea id="word-text" rows="5" cols="30" placeholder="book,书,L1
+school,学校,L2
+teacher,老师,L3"></textarea><br>
         <input type="file" id="word-file" accept=".csv"><br>
         <button onclick="uploadWords()">上传</button>
         <button onclick="showMainMenu()">返回</button>
@@ -89,8 +90,7 @@ apple,苹果,L1"></textarea><br>
     <script>
         let selectedWords = [];
         let matchedPairs = new Set();
-        let wrongPairs = new Set();
-        let wrongWords = []; // 记录错选的单词
+        let wrongWords = [];
         let currentLevel = 'lv1';
         let currentTimeMode = '65';
         let groups = [];
@@ -129,7 +129,7 @@ apple,苹果,L1"></textarea><br>
             currentLevel = level;
             score = 0;
             currentGroup = 0;
-            wrongWords = []; // 重置错词记录
+            wrongWords = [];
             try {
                 const response = await fetch(`/game/${level}`);
                 if (!response.ok) throw new Error('Failed to load game');
@@ -164,13 +164,13 @@ apple,苹果,L1"></textarea><br>
             gameGrid.innerHTML = '';
             selectedWords = [];
             matchedPairs.clear();
-            wrongPairs.clear();
             document.getElementById('group-info').textContent = `第 ${currentGroup + 1}${currentTimeMode === 'endless' ? '' : '/6'} 组`;
             document.getElementById('score').textContent = `分数: ${score}`;
 
             grid.forEach(cell => {
                 const cellElement = document.createElement('div');
                 cellElement.classList.add('cell');
+                if (matchedPairs.has(cell.id)) cellElement.classList.add('matched');
                 cellElement.textContent = cell.value;
                 cellElement.dataset.id = cell.id;
                 cellElement.addEventListener('click', () => handleCellClick(cell.id, word_ids, cellElement));
@@ -180,7 +180,7 @@ apple,苹果,L1"></textarea><br>
         }
 
         async function handleCellClick(cellId, word_ids, cellElement) {
-            if (matchedPairs.has(cellId) || wrongPairs.has(cellId) || selectedWords.includes(cellId)) return;
+            if (matchedPairs.has(cellId) || selectedWords.includes(cellId)) return;
 
             selectedWords.push(cellId);
             cellElement.classList.add('selected');
@@ -210,13 +210,13 @@ apple,苹果,L1"></textarea><br>
                     cells.forEach(cell => {
                         cell.classList.remove('selected');
                         cell.classList.add('wrong');
-                        wrongPairs.add(parseInt(cell.dataset.id));
                         const word = word_ids[cell.dataset.id];
                         wrongWords.push(`${word.value} (${word.pair})`);
+                        setTimeout(() => cell.classList.remove('wrong'), 500); // 500ms 后恢复
                     });
                 }
                 selectedWords = [];
-                if (matchedPairs.size + wrongPairs.size === rows * 2) {
+                if (matchedPairs.size === rows * 2) {
                     currentGroup += 1;
                     setTimeout(loadGroup, 500);
                 }
