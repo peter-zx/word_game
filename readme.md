@@ -1,3 +1,25 @@
+```
+word-game-backend/
+├── app.py
+├── api/
+│   ├── __init__.py
+│   ├── words.py
+│   ├── game.py
+│   └── scores.py
+├── utils/
+│   ├── __init__.py
+│   └── words_util.py
+├── data/
+│   ├── default_words.csv  # 默认单词库
+│   ├── words1.csv         # 用户添加的单词库1
+│   ├── words2.csv         # 用户添加的单词库2（可扩展）
+│   ├── game_words.csv     # 中转缓存文件
+│   └── scores.json        # 分数记录
+├── static/
+│   └── index.html
+```
+
+
 功能说明
 一级界面：
 显示模式选择（65秒、125秒、180秒、无尽模式）。
@@ -25,18 +47,3 @@
 使用柔和颜色和圆角按钮，提升视觉效果。
 
 布局清晰，适合初学者理解。
-
-word-game-backend/
-├── app.py
-├── api/
-│   ├── __init__.py
-│   ├── words.py
-│   └── game.py
-├── utils/
-│   ├── __init__.py
-│   └── words_util.py
-├── data/
-│   ├── words.csv
-│   └── scores.json  # 新增：存储分数记录
-├── static/
-│   └── index.html

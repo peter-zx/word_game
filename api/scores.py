@@ -12,17 +12,18 @@ def save_score():
         'time_mode': data['time_mode'],
         'level': data['level'],
         'score': data['score'],
-        'timestamp': int(time.time())  # 确保时间戳正确
+        'timestamp': int(time.time())
     }
     scores_file = os.path.join('data', 'scores.json')
+    os.makedirs('data', exist_ok=True)  # 确保目录存在
     scores = []
     if os.path.exists(scores_file):
         with open(scores_file, 'r', encoding='utf-8') as f:
             scores = json.load(f)
     scores.append(score_entry)
-    scores = sorted(scores, key=lambda x: x['timestamp'], reverse=True)[:5]  # 最新5次
+    scores = sorted(scores, key=lambda x: x['timestamp'], reverse=True)[:5]
     with open(scores_file, 'w', encoding='utf-8') as f:
-        json.dump(scores, f, ensure_ascii=False)  # 支持中文
+        json.dump(scores, f, ensure_ascii=False)
     return jsonify({'message': 'Score saved'})
 
 @scores_api.route('/get_scores', methods=['GET'])

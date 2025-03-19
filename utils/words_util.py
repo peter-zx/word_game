@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-def load_words_from_csv(filepath):
+def load_words_from_csv(filepath='data/game_words.csv'):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     full_path = os.path.join(base_dir, filepath)
     try:
