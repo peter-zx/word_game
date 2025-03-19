@@ -1,45 +1,94 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Word Game</title>
+    <title>自定义知识消消乐</title>
     <style>
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 100px);
-            gap: 10px;
-        }
-        .cell {
-            border: 1px solid black;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            background-color: #f0f0f0;
-        }
-        .cell.selected {
-            background-color: yellow;
-        }
-        .cell.matched {
-            background-color: green;
-        }
+        .container { text-align: center; margin-top: 50px; }
+        .level-grid { display: grid; grid-template-columns: repeat(3, 100px); gap: 20px; justify-content: center; }
+        .game-grid { display: grid; grid-template-columns: repeat(2, 100px); gap: 10px; margin: 20px auto; width: fit-content; }
+        .card, .cell { border: 1px solid black; padding: 20px; text-align: center; cursor: pointer; }
+        .cell { background-color: #f0f0f0; }
+        .cell.selected { background-color: yellow; }
+        .cell.matched { background-color: gray; }
+        button, textarea { margin: 10px; }
     </style>
 </head>
 <body>
-    <div class="grid" id="game-grid"></div>
-    <button onclick="loadGame()">Restart Game</button>
+    <div id="main-menu" class="container">
+        <h1>自定义知识消消乐</h1>
+        <button onclick="showLevels()">开始游戏</button>
+        <button onclick="showUpload()">添加单词库</button>
+    </div>
+
+    <div id="level-menu" class="container" style="display: none;">
+        <h2>选择难度</h2>
+        <div class="level-grid">
+            <div class="card" onclick="startGame('lv1')">Lv1</div>
+            <div class="card" onclick="startGame('lv2')">Lv2</div>
+            <div class="card" onclick="startGame('lv3')">Lv3</div>
+            <div class="card" onclick="startGame('lv4')">Lv4</div>
+            <div class="card" onclick="startGame('lv5')">Lv5</div>
+            <div class="card" onclick="startGame('lv6')">Lv6</div>
+        </div>
+        <button onclick="showMainMenu()">返回</button>
+    </div>
+
+    <div id="game" class="container" style="display: none;">
+        <div id="game-grid" class="game-grid"></div>
+        <button onclick="startGame(currentLevel)">Restart</button>
+        <button onclick="showLevels()">返回</button>
+    </div>
+
+    <div id="upload" class="container" style="display: none;">
+        <h2>添加单词库</h2>
+        <textarea id="word-text" rows="5" cols="30" placeholder="english,chinese,difficulty&#10;apple,苹果,L1"></textarea><br>
+        <input type="file" id="word-file" accept=".csv"><br>
+        <button onclick="uploadWords()">上传</button>
+        <button onclick="showMainMenu()">返回</button>
+    </div>
+
     <script>
         let selectedWords = [];
         let matchedPairs = new Set();
+        let currentLevel = 'lv1';
 
-        async function loadGame() {
+        function showMainMenu() {
+            document.getElementById('main-menu').style.display = 'block';
+            document.getElementById('level-menu').style.display = 'none';
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('upload').style.display = 'none';
+        }
+
+        function showLevels() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('level-menu').style.display = 'block';
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('upload').style.display = 'none';
+        }
+
+        function showUpload() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('level-menu').style.display = 'none';
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('upload').style.display = 'block';
+        }
+
+        async function startGame(level) {
+            currentLevel = level;
             try {
-                const response = await fetch('/game');
+                const response = await fetch(`/game/${level}`);
                 if (!response.ok) throw new Error('Failed to load game');
                 const data = await response.json();
                 const grid = data.grid;
                 const word_ids = data.word_ids;
 
+                document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('level-menu').style.display = 'none';
+                document.getElementById('game').style.display = 'block';
+                document.getElementById('upload').style.display = 'none';
+
                 const gameGrid = document.getElementById('game-grid');
-                gameGrid.innerHTML = ''; // 清空网格
+                gameGrid.innerHTML = '';
                 selectedWords = [];
                 matchedPairs.clear();
 
@@ -68,9 +117,7 @@
             if (selectedWords.length === 2) {
                 const response = await fetch('/check', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         word1_id: selectedWords[0],
                         word2_id: selectedWords[1],
@@ -81,22 +128,40 @@
 
                 const cells = document.querySelectorAll('.cell.selected');
                 if (data.result) {
-                    alert('Match!');
                     cells.forEach(cell => {
                         cell.classList.remove('selected');
                         cell.classList.add('matched');
                         matchedPairs.add(parseInt(cell.dataset.id));
                     });
                 } else {
-                    alert('No match!');
                     cells.forEach(cell => cell.classList.remove('selected'));
                 }
                 selectedWords = [];
             }
         }
 
-        // 页面加载时启动游戏
-        loadGame();
+        async function uploadWords() {
+            const text = document.getElementById('word-text').value;
+            const file = document.getElementById('word-file').files[0];
+
+            const formData = new FormData();
+            if (file) {
+                formData.append('file', file);
+            } else if (text) {
+                formData.append('text', text);
+            } else {
+                alert('Please provide text or a file');
+                return;
+            }
+
+            const response = await fetch('/upload_words', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            alert(data.message || data.error);
+            if (response.ok) showMainMenu();
+        }
     </script>
 </body>
 </html>

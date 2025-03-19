@@ -1,11 +1,9 @@
 import pandas as pd
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-def load_words_from_csv(filepath='data/words.csv'):
-    full_path = os.path.join(BASE_DIR, filepath)
-    print(f"Loading words from: {full_path}")
+def load_words_from_csv(filepath):
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    full_path = os.path.join(base_dir, filepath)
     try:
         df = pd.read_csv(full_path)
         return df.to_dict(orient='records')
