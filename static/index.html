@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>自定义知识消消乐</title>
+    <title>知识消消乐</title>
     <style>
         .container { text-align: center; margin: 20px; font-family: Arial, sans-serif; }
         .mode-grid, .level-grid { display: grid; grid-template-columns: repeat(2, 120px); gap: 15px; justify-content: center; }
@@ -22,11 +22,14 @@
         .modal-close { position: absolute; right: 10px; top: 10px; background: #ff4040; padding: 5px 10px; }
         .modal-buttons { display: flex; justify-content: space-around; margin-top: 20px; }
         #wrong-words { margin-top: 10px; }
+        .wrong-word { display: flex; justify-content: space-between; margin: 5px 0; }
+        .wrong-word span.chinese { font-weight: 300; } /* 中文细体 */
+        .wrong-word span.english { font-weight: bold; } /* 英文加粗 */
     </style>
 </head>
 <body>
     <div id="main-menu" class="container">
-        <h1>自定义知识消消乐</h1>
+        <h1>知识消消乐</h1>
         <h3>选择模式</h3>
         <div class="mode-grid">
             <div class="card" onclick="showLevels('65')">65秒</div>
@@ -211,8 +214,8 @@ teacher,老师,L3"></textarea><br>
                         cell.classList.remove('selected');
                         cell.classList.add('wrong');
                         const word = word_ids[cell.dataset.id];
-                        wrongWords.push(`${word.value} (${word.pair})`);
-                        setTimeout(() => cell.classList.remove('wrong'), 500); // 500ms 后恢复
+                        wrongWords.push({ chinese: word.pair, english: word.value });
+                        setTimeout(() => cell.classList.remove('wrong'), 500);
                     });
                 }
                 selectedWords = [];
@@ -266,7 +269,12 @@ teacher,老师,L3"></textarea><br>
             });
             document.getElementById('final-score').textContent = `你的分数: ${score}`;
             const wrongWordsDiv = document.getElementById('wrong-words');
-            wrongWordsDiv.innerHTML = wrongWords.length ? '<h3>错选单词:</h3>' + wrongWords.map(w => `<p>${w}</p>`).join('') : '<p>完美！没有错选单词。</p>';
+            if (wrongWords.length) {
+                wrongWordsDiv.innerHTML = '<h3>错选单词:</h3>' + 
+                    wrongWords.map(w => `<div class="wrong-word"><span class="chinese">${w.chinese}</span> --- <span class="english">${w.english}</span></div>`).join('');
+            } else {
+                wrongWordsDiv.innerHTML = '<p>完美！没有错选单词。</p>';
+            }
             document.getElementById('end-modal').style.display = 'block';
         }
 

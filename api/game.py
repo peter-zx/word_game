@@ -6,7 +6,9 @@ game_api = Blueprint('game_api', __name__)
 
 def generate_game(words, rows):
     pair_count = min(rows, len(words))
-    selected_words = random.sample(words, pair_count)
+    # 如果单词不够，重复使用已有单词
+    available_words = words * (rows // len(words) + 1) if len(words) < rows else words
+    selected_words = random.sample(available_words, pair_count)
     game_items = []
     for word in selected_words:
         game_items.append({'type': 'english', 'value': word['english'], 'pair': word['chinese']})
@@ -21,7 +23,7 @@ def generate_game(words, rows):
 
 @game_api.route('/game/<level>', methods=['GET'])
 def get_game(level):
-    words = load_words_from_csv()  # 默认读取 game_words.csv
+    words = load_words_from_csv()
     if not words:
         return jsonify({'error': 'No words found'}), 404
 
