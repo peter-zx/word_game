@@ -1,8 +1,11 @@
+import sys
+import os
 from flask import Flask, send_from_directory, request, jsonify
+# 手动添加项目根目录到 sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from api.words import words_api
 from api.game import game_api
 from api.scores import scores_api
-import os
 import glob
 import pandas as pd
 
@@ -29,7 +32,6 @@ def upload_words():
     if 'file' in request.files:
         file = request.files['file']
         if file.filename.endswith('.csv'):
-            # 读取文件内容并添加表头
             content = file.read().decode('utf-8').strip()
             with open(new_file, 'w', encoding='utf-8') as f:
                 f.write('english,chinese,difficulty\n' + content)
